@@ -5,6 +5,8 @@ continuations kernel math.parser sequences splitting xml
 xml.syntax xml.traversal 4DStroll.adsoda.space
 4DStroll.adsoda.light
 4DStroll.adsoda.solid 
+4DStroll.adsoda.nDobject 
+4DStroll.adsoda.spacegroup
 io.encodings.ascii
 io.files
 calendar
@@ -15,17 +17,14 @@ io.pathnames
 IN: 4DStroll.4DWorld.space-file-decoder
 
 : debug? ( -- b ) f ;
+: when-debug ( string quot -- ) debug? swap [ drop ] if ; inline
+: scr-debug ( string -- ) [ pprint ] when-debug ; inline
+: scr-debug-cr ( string -- ) [ . ] when-debug ; inline
+: tag-debug ( obj string -- obj )
+    scr-debug dup scr-debug-cr ; inline  
 
-: scr-debug ( string -- ) 
-    debug? [ pprint ] [ drop ] if
-;
-
-: scr-debug-cr ( string -- ) 
-    debug? [ . ] [ drop ] if
-;
-
-: decode-number-array ( x -- y )  
-    "," split [ string>number ] map ;
+: decode-number-array ( string -- array )  
+    "," split [ string>number ] map ; inline
 
 TAGS: 4DStroll-read-model ( obj tag -- obj  )
 
@@ -35,47 +34,82 @@ TAG: model 4DStroll-read-model
 
 TAG: dimension 4DStroll-read-model 
     children>string string>number 
-    [ "dimension" scr-debug scr-debug-cr ] keep  
+    "dimension : " tag-debug  
     >>dimension ;
+
 TAG: direction 4DStroll-read-model 
     children>string decode-number-array 
-    [ "direction : " scr-debug scr-debug-cr ] keep
+    "direction : " tag-debug
     >>direction ;
+
 TAG: color     4DStroll-read-model 
     children>string decode-number-array 
-    [ "color : " scr-debug scr-debug-cr ] keep
+    "color : " tag-debug
     >>color ;
+
+TAG: refpoint    4DStroll-read-model 
+    children>string decode-number-array 
+    "refpoint : " tag-debug 
+    >>refpoint ;
+
 TAG: ambient-color     4DStroll-read-model   
     children>string decode-number-array 
-    [ "ambient-color : " scr-debug scr-debug-cr ] keep 
+    "ambient-color : " tag-debug 
     >>ambient-color ;
-TAG: name      4DStroll-read-model children>string 
-    [ "name : " scr-debug scr-debug-cr ] keep 
+
+TAG: name      4DStroll-read-model 
+    children>string 
+    "name : " tag-debug 
     >>name ;
+
+TAG: ID      4DStroll-read-model 
+    children>string string>number
+    "ID : " tag-debug 
+    >>ID ;
 
 TAG: face      4DStroll-read-model  
     children>string decode-number-array  
-    [ "face" scr-debug scr-debug-cr ] keep 
+    "face" tag-debug 
     cut-solid ;
+
+: register-spacegroup ( space group -- )
+    over >>parent ! space group
+    define-ID ! space group id
+    [ rot spacegroups>> set-at ] 3keep ! add to spacegroups
+    [ rot activegroup>> content>> set-at ] 3keep
+    drop >>activegroup drop
+;
+
+TAG: spacegroup 4DStroll-read-model 
+    [ dup activegroup>> swap ] dip ! save previous activegroup
+    over
+    <spacegroup> 
+    register-spacegroup
+    "<<spacegroup " scr-debug  
+    children-tags  [ 4DStroll-read-model ] each 
+     "spacegroup>>" scr-debug-cr
+    swap >>activegroup ! restore previous activegroup
+!  ensure-adjacencies    
+!    parent>> >>activegroup
+!    structure-group
+!    suffix-solids
+    ;
 
 TAG: solid 4DStroll-read-model 
     <solid> swap 
     "<<solid " scr-debug  
     children-tags  [ 4DStroll-read-model ] each 
      "solid>>" scr-debug-cr
-  ensure-adjacencies
-    suffix-solids
+    ensure-adjacencies
+    space-suffix-solids
     ;
      
-
-
 TAG: light 4DStroll-read-model 
     <light> swap 
     "<<light " scr-debug
     children-tags [ 4DStroll-read-model ] each 
     " light>>" scr-debug-cr 
-    suffix-lights ; 
-
+    space-suffix-lights ; 
 
 TAG: space 4DStroll-read-model 
     children-tags "space" scr-debug-cr
@@ -84,68 +118,13 @@ TAG: space 4DStroll-read-model
     each   ;
 
 : read-model-file ( path -- x )
-   dup scr-debug-cr <space> swap
+    [ scr-debug-cr <space> ] keep
     file>xml 4DStroll-read-model
-!    dup solids>> 
-!    [ dup identity-hashcode swap ] H{ } map>assoc >>solids
 ;
 
 : test-space-file ( -- model ) 
-! "D:/Program Files/factor/work/4DStroll/save/hypercube.xml"
-!  "D:/Program Files/factor/extra/4DStroll/save/multi-solids.xml"
-! "D:/Program Files/factor/extra/4DStroll/save/multi-solids.xml"
-   work-directory> "/multi-solids.xml" append ! normalize-path
-! "D:/Program Files/factor/work/4DStroll/save/prismetriagone.xml"
-read-model-file
-;
-
-: append->XML ( xml string tag -- string ) 
-    [ "<" ">" surround prepend ] keep
-     "</" ">\n" surround append 
-    append
-;
-
-: seq->str ( seq -- str )
-    [ number>string ] map
-    "," join
-;
-
-: face->XML ( XML face -- xml ) 
-    halfspace>> 
-    seq->str   
-    "face" append->XML
-;
-
-: light->XML ( XML solid -- xml )
-    ""  swap
-    {
-    [ name>> dup [ ] [ drop "none" ] if "name" append->XML ]
-    [ direction>> seq->str "direction" append->XML ]
-    [ color>> seq->str "color" append->XML ]    
-    } cleave
-    "light" append->XML
-;
-
-: solid->XML ( XML solid -- xml )
-    "" swap
-    {
-    [  name>> "name" append->XML ]
-    [ dimension>> number>string "dimension" append->XML ]
-    [ faces>> [ face->XML ] each ]
-    [ color>> seq->str "color" append->XML ]    
-    } cleave
-    "solid" append->XML
-;
-: space->XML ( xml space -- xml )
-    "" swap
- {
-    [  name>> "name" append->XML ]
-    [ dimension>> number>string "dimension" append->XML ]
-    [ solids>> [ nip solid->XML ] assoc-each ]
-    [ lights>> [ light->XML ] each ]
-    } cleave
-    "space" append->XML
- "" swap   "model" append->XML
+    work-directory> "/multi-solids.xml" append ! normalize-path
+    read-model-file
 ;
 
 : autofilename ( -- name )
@@ -164,7 +143,7 @@ read-model-file
 ;
 
 : space->autofile ( space -- )
-    "" swap space->XML string-lines autofilename ascii
+    "" swap +->XML string-lines autofilename ascii
     set-file-lines
 ;
 

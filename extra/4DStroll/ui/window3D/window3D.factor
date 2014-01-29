@@ -28,6 +28,8 @@ ui.utils
 literals
 math.order
 math.functions
+opengl
+fonts ui.text
 ;
 
 IN: 4DStroll.ui.window3D
@@ -45,14 +47,11 @@ CONSTANT: MOUSE-SCALE 1/20.
 : frustum ( dim -- -x x -y y near far )
     dup first2 min v/n
     NEAR-PLANE FOV / v*n first2 [ [ neg ] keep ] bi@
-    NEAR-PLANE FAR-PLANE ;
+    NEAR-PLANE FAR-PLANE ; inline
 
 TUPLE: window3D  < gadget 3d-cam ; 
 
 : set-modelview-matrix ( gadget -- )
-    GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT bitor glClear
-    GL_MODELVIEW glMatrixMode
-    glLoadIdentity
     3d-cam>>
     { 
     [ pitch>> 1.0 0.0 0.0 glRotatef ]
@@ -62,22 +61,19 @@ TUPLE: window3D  < gadget 3d-cam ;
     } cleave ;
 
 
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! drawing functions 
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+: do-look-at ( gadget -- )
+    3d-cam>>  camera-look-at gluLookAt ; inline
 
 : <window3D>  ( model observer -- gadget )
     window3D  new 
     t >>clipped?
     t >>root?
-    swap 2dup 
-    projection-mode>> add-connection
-    2dup 
-    collision-mode>> add-connection
+    swap  
+    [ projection-mode>> add-connection ] 2keep
+    [ collision-mode>>  add-connection ] 2keep
     >>3d-cam 
     swap >>model 
-;
+; inline
 
 M: window3D pref-dim* ( gadget -- dim )  
 ! dup interior>> pen-pref-dim
@@ -89,42 +85,52 @@ M: window3D draw-gadget* ( gadget -- )
     dup
     '[ _
     {
-        [ drop GL_PROJECTION glMatrixMode glLoadIdentity ]
-        [ dim>> [ [ { 0 0 } ] dip gl-viewport ]
-            [ frustum glFrustum ] bi
-            0.6 0.6 0.6 .9 glClearColor ]
+        [ drop 
+        
+         GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT bitor glClear
+            0.9 0.9 0.9 1.0 glClearColor
+!           1.0 glClearDepth
+            GL_LINE_SMOOTH glEnable
+!            GL_LINE_SMOOTH_HINT GL_NICEST glHint
+            GL_BLEND glEnable
+           GL_DEPTH_TEST glEnable ! <<<<<
+!            GL_CULL_FACE glEnable
+!            GL_BACK glCullFace
+!           GL_FRONT glCullFace
+
+!           GL_LIGHTING glEnable
+!           GL_LIGHT0 glEnable
+!           GL_LEQUAL glDepthFunc
+
+         GL_PROJECTION glMatrixMode glLoadIdentity 
+        ]
+!        [ dim>>  [ [ { 0 0 } ] dip gl-viewport ] ! define the area drawn
+!            [ frustum glFrustum ]    bi ]
         [ drop
-            -400.0 400.0 -400.0 400.0 0.0 4000.0 glOrtho
+   !       -400.0 400.0 -400.0 400.0 0.0 4000.0 glOrtho
+          60.0 1.0 0.1 3000.0 gluPerspective
            ! 3d-cam>> projection-mode>> value>> 1 =    
-           ! [ 60.0 1.0 0.1 3000.0 gluPerspective ]
+           ! [  ]
            ! [ -400.0 400.0 -400.0 400.0 0.0 4000.0 glOrtho ] if
         ]
       !  [ 3d-cam>> collision-mode>> value>> 
       !      \ remove-hidden-solids?  set ] 
+   !         [  set-modelview-matrix ]
+            [  do-look-at ]
         [ drop
-        GL_MODELVIEW glMatrixMode
-            glLoadIdentity  
-            0.9 0.9 0.9 1.0 glClearColor
-            1.0 glClearDepth
-            GL_LINE_SMOOTH glEnable
-            GL_BLEND glEnable
-            GL_DEPTH_TEST glEnable       
-            GL_LEQUAL glDepthFunc
-            GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA glBlendFunc
-            GL_LINE_SMOOTH_HINT GL_NICEST glHint
+           GL_MODELVIEW glMatrixMode
+           glLoadIdentity  
+!            GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA glBlendFunc
+! 
             1.25 glLineWidth
-            GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT bitor glClear
-            glLoadIdentity
-            GL_LIGHTING glEnable
-            GL_LIGHT0 glEnable
-            GL_COLOR_MATERIAL glEnable
-            GL_FRONT GL_AMBIENT_AND_DIFFUSE glColorMaterial
+!            glLoadIdentity
+!            GL_COLOR_MATERIAL glEnable
+!            GL_FRONT GL_AMBIENT_AND_DIFFUSE glColorMaterial
             ]
-           [ set-modelview-matrix ]
+
            [ model>> value>> [  space->GL ] when* ]
-    !       [ drop GL_MODELVIEW glMatrixMode  glLoadIdentity ]
-
-
+!            [ drop  { 10 10 } [ monospace-font "foo" draw-text ] with-translation  ]
+           [ drop glFlush ]
             } cleave 
          
 
@@ -132,13 +138,12 @@ M: window3D draw-gadget* ( gadget -- )
          !   with-translation
 ;
 
-: tick ( gadget -- )  relayout-1  ;
+: tick ( gadget -- )  relayout-1  ; 
 
 
 M: window3D graft* 
         dup find-gl-context 
-        [ [ tick ] curry 100 milliseconds every ] keep 2drop
-         ;
+        [ [ tick ] curry 100 milliseconds every ] keep 2drop ;
 
 M: window3D ungraft* drop
        ! find-gl-context 
@@ -147,14 +152,9 @@ M: window3D ungraft* drop
 M: window3D model-changed nip relayout ; 
 
 : mvt-3D-X ( gadget turn pitch -- )
-    '[ ! dup position>>
-    ! norm neg 
-     !   reset-camera 
-        _ camera-turn-left 
+    '[  _ camera-turn-left 
         _ camera-pitch-up 
-        ! step-camera
-        ] change-3d-cam  drop 
-        
+     ] change-3d-cam  drop         
         ; inline
 
 : mvt-3D-1 ( gadget -- )    90  0 mvt-3D-X  ; inline
@@ -163,18 +163,12 @@ M: window3D model-changed nip relayout ;
 : mvt-3D-4 ( gadget -- )    45 45 mvt-3D-X  ; inline
 
 
-
-
 : mvt-3D-cam ( gadget quot -- ) 
     over [ [ 3d-cam>> ] dip call( -- ) ] dip swap >>3d-cam
     relayout-1 ; inline
 
-: rotation-3D-cam ( gadget quot -- )
-    mvt-3D-cam ; inline
-
-: translation-3D-cam ( gadget quot -- ) 
-    mvt-3D-cam ; inline
-
+! : rotation-3D-cam    ( gadget quot -- ) mvt-3D-cam ; inline
+! : translation-3D-cam ( gadget quot -- ) mvt-3D-cam ; inline
 
 window3D H{
     { T{ button-down f f 1 }     [ request-focus ] }

@@ -2,7 +2,7 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: kernel accessors  4DStroll.adsoda.nDobject 4DStroll.adsoda.halfspace 
 4DStroll.adsoda.tools arrays prettyprint fry 4DStroll.adsoda.tools.combinators
-variables
+variables math.parser models
 combinators math.vectors math.order sequences math namespaces ;
 IN: 4DStroll.adsoda.face
 
@@ -13,13 +13,12 @@ VAR: pv
 : >pv ( x -- ) \ pv set ; inline 
 : pv> ( -- x ) pv ; inline 
 
-: with-pv ( i quot -- ) 
-  \ pv swap with-variable
-; inline
+: with-pv ( i quot -- )  \ pv swap with-variable ; inline
 
 
-TUPLE: face < nDobject { halfspace array } touching-corners adjacent-faces
- ;
+TUPLE: face < nDobject { halfspace array } touching-corners 
+    adjacent-faces ;
+
 : <face> ( v -- tuple )       
     face new 
     t >>selected?
@@ -35,12 +34,11 @@ M: face >log
 M: face >table 
 !     {
         
-         halfspace>> seq>string "   face : " swap 2array ! "halfspace : " prepend ] 
+         halfspace>> seq>string "   face : " 
+    swap 2array ! "halfspace : " prepend ] 
 !        [ touching-corners>> "touching corners : " pprint . ]
 !    }   cleave
     ;
-
-
 
 : flip-face ( face -- face ) 
     [ vneg ] change-halfspace ; inline
@@ -75,11 +73,11 @@ M: face >table
 : real-face? ( face -- ? )
     [ touching-corners>> length ] 
     [ halfspace>> dimension ] bi 
-    >= ;
+    >= ; inline
 
 : (add-to-adjacent-faces) ( face face -- face )
     over adjacent-faces>> 2dup member?
-    [ 2drop ] [ swap suffix >>adjacent-faces ] if ;
+    [ 2drop ] [ swap suffix >>adjacent-faces ] if ; inline
 
 : add-to-adjacent-faces ( face face -- face )
     2dup =   
@@ -93,11 +91,10 @@ M: face >table
         [ first ] keep second  
         [ add-to-adjacent-faces drop ] 2keep 
         swap add-to-adjacent-faces drop  
-    ] each ; inline
+    ] each ; 
 
 : face-project-dim ( face -- x )  
-    halfspace>> length 2 -  
-; inline
+    halfspace>> length 2 -  ; inline
 
 : apply-light ( color light normal -- u )
     over direction>>  v. 
@@ -123,13 +120,13 @@ drop third
 
 : (intersection-into-face) ( face-init face-adja quot -- face )
     [
-    [  [ pv-factor ] bi@ 
-        roll 
-        [ map ] 2bi@
-        v-
-    ] 2keep
-    [ touching-corners>> ] bi@
-    [ swap  [ = ] curry find  nip f = ] curry find nip
+        [  [ pv-factor ] bi@ 
+           roll 
+            [ map ] 2bi@
+           v-
+        ] 2keep
+        [ touching-corners>> ] bi@
+        [ swap  [ = ] curry find  nip f = ] curry find nip
     ] dip  over
      [
         call
@@ -141,28 +138,38 @@ drop third
 
 : intersection-into-face ( face-init face-adja -- face )
     [ [ pv project-vector ] bi@ ]     
-    (intersection-into-face) ; inline
+    (intersection-into-face) ; inline 
 
 : intersection-into-silhouette-face ( face-init face-adja -- face )
-    [ ] (intersection-into-face) ; inline 
+    backface?
+    [ [ ] (intersection-into-face) ] [ 2drop f ]  if
+    ; inline
+
 
 : intersections-into-faces ( face -- faces )
+    [ parent>> ] keep
+    [ name>> " proj " append 
+                 pv number>string append ] keep
     clone dup  
     adjacent-faces>> [ intersection-into-face ] with 
     map 
-    [ ] filter ;
+    [ ] filter 
+    swap [ >>name ] curry map        
+    swap [ >>parent ] curry map
+    ;
 
 : (face-silhouette) ( face -- faces )
+!    [ parent>> ] keep
+!    [ name>> ] keep
     clone dup adjacent-faces>>
-    [   backface?
-        [ intersection-into-silhouette-face ] [ 2drop f ]  if  
-    ] with map 
+    [ intersection-into-silhouette-face ] with map 
     [ ] filter
+!    swap [ >>name ] curry map        
+!    swap [ >>parent ] curry map
 ; inline
 
 : face-silhouette ( face -- faces )     
-    backface? [ drop f ] [ (face-silhouette) ] if ; inline
-
+    backface? [ drop f ] [ (face-silhouette) ] if ;
 
 : point-inside-or-on-face? ( face v -- ? ) 
     [ halfspace>> ] dip point-inside-or-on-halfspace?  ; inline
@@ -170,5 +177,13 @@ drop third
 : point-inside-face? ( face v -- ? ) 
     [ halfspace>> ] dip  point-inside-halfspace? ; inline
 
+
+M: face +->XML  
+    halfspace>> 
+    seq->str   
+    "face" append->XML
+;
+
+M: face ->selected? selected?>> set-model ;
 
 

@@ -13,19 +13,19 @@ io
 io.directories
 io.pathnames
 io.files
- ui
-        ui.gadgets.worlds
-       ui.gadgets
-       ui.gadgets.frames
-       ui.gadgets.tracks
-       ui.gadgets.labels
-       ui.gadgets.buttons
-       ui.gadgets.packs
-       ui.gadgets.grids
-       ui.gadgets.labeled
+ui
+ui.gadgets.worlds
+ui.gadgets
+ui.gadgets.frames
+ui.gadgets.tracks
+ui.gadgets.labels
+ui.gadgets.buttons
+ui.gadgets.packs
+ui.gadgets.grids
+ui.gadgets.labeled
 ui.utils
-       ui.gestures
-       ui.gadgets.scrollers
+ui.gestures
+ui.gadgets.scrollers
 4DStroll.ui.camera
 4DStroll.4DWorld
 4DStroll.4DWorld.space-file-decoder
@@ -33,15 +33,16 @@ ui.utils
 4DStroll.ui.window3D
 4DStroll.ui.describer
 4DStroll.ui.4Dcommands
+ui.gadgets.status-bar
 models
 fry
 variables
+4DStroll.ui.spacefile-chooser
 ;
 
-
 IN: 4DStroll
-VAR: selected-file
 
+VAR: selected-file
 VAR: selected-file-model
 ! VAR: observer3d 
 
@@ -54,10 +55,7 @@ VAR: selected-file-model
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 : add-border-button ( gadget name quot -- gadget ) 
-    <border-button> add-gadget
-    ! dup
-    ! interior>> plain>> COLOR: dim-grey >>background drop
-;
+    <border-button> add-gadget ; inline
 
 : menu-rotations-4D ( -- gadget )
  3 3  <frame> { 2 2 } >>gap { 1 1 } >>filled-cell
@@ -95,12 +93,12 @@ VAR: selected-file-model
     view1> 3d-cam>> projection-mode>>
     { { 1 "perspective" } { 0 "orthogonal" }  } 
       <radio-buttons> add-gadget
-! : collision-detection-chooser ( x -- gadget )
+    ! : collision-detection-chooser ( x -- gadget )
     !   { { t "on" } { f "off" }  } <toggle-buttons> ;
-          !  "Collision detection (slow and buggy ) : " <label> add-gadget
-            ! observer3d> 
-          !  collision-mode>> collision-detection-chooser add-gadget
-   !     f track-add
+    !  "Collision detection (slow and buggy ) : " <label> add-gadget
+    ! observer3d> 
+    !  collision-mode>> collision-detection-chooser add-gadget
+    !     f track-add
     "Projection mode" <labeled-gadget>
 ;
 
@@ -134,36 +132,6 @@ VAR: selected-file-model
     close-window 
 ;
 
-: save-4DStroll-space ( button -- )
-!    find-parent [ relayout ] each
-! ajouter le nouvel enregistrement à la liste des fichiers
-drop
-    4dworld> space>> value>> space->autofile
-;
-
-: add-solid ( button -- )
-    drop
-;
-
-: delete-solid ( button -- )
-    pprint
-    ! drop
-;
-
-: group-solids ( button -- )
-    drop
-;
-
-: menu-function ( -- gadget )
-    <shelf> { 2 2 } >>gap
-    "Exit" [ close-4DStroll ] add-border-button
-    "Save" [ save-4DStroll-space ] add-border-button
-!    "Add solid" [ add-solid ] add-border-button
-!    "delete solid" [ delete-solid ] add-border-button
-!    "group solids" [ delete-solid ] add-border-button
-!    "function" <labeled-gadget>
-;
-
 : load-model-file ( -- )
     [ 
         dup space>> 
@@ -177,28 +145,48 @@ drop
 ;
 
 
-! ----------------------------------------------------------
-! file chooser
-! ----------------------------------------------------------
-: <run-file-button> ( file-name -- button )
-  dup '[ drop  _  \ selected-file set load-model-file 
-   ]   <button> { 0 0 } >>align 
+
+: save-4DStroll-space ( button -- )
+    drop
+    4dworld> space>> value>> space->autofile
 ;
 
-: <list-runner> ( -- gadget )
-     work-directory>
-!    "resource:extra/4DStroll/save"
-! "D:/Program Files/factor/work/4DStroll/save"
-!    "resource:extra/4DStroll" 
-  <pile> 1 >>fill 
-    over dup directory-files  
-    [ ".xml" tail? ] filter 
-    [ append-path ] with map
-    [ <run-file-button> add-gadget ] each
-    <scroller>
-    swap <labeled-gadget> ;
+: load-4DStroll-space ( button -- )
+!   parent>> 
+ drop   
+!    [  ] ! load-model-file
+!    "choose space file to add" 
+!     show-space-files-popup
+;
 
-! -----------------------------------------------------
+: add-solid ( button -- )
+    drop ; inline
+
+: delete-solid ( button -- )
+    drop ; inline
+
+: group-solids ( button -- )
+    drop 
+;
+
+: spacefile-chooser-window ( gadget -- )
+    drop
+    [  \ selected-file set load-model-file ]
+    <spacefile-chooser>  "Choose a file " 
+    open-status-window ; inline
+
+
+: menu-function ( -- gadget )
+    <shelf> { 2 2 } >>gap
+    "Exit" [ close-4DStroll ] add-border-button
+    "Load" [  spacefile-chooser-window ] add-border-button
+    "Save" [ save-4DStroll-space ] add-border-button
+!    "Add solid" [ add-solid ] add-border-button
+!    "delete solid" [ delete-solid ] add-border-button
+!    "group solids" [ delete-solid ] add-border-button
+!    "function" <labeled-gadget>
+;
+
 
 : menu-rotations-3D ( -- gadget )
    2 2 <frame>
@@ -265,14 +253,15 @@ drop
             0.5 >>align
             { 0 10 } >>gap
         add-gadget
-        menu-quick-views add-gadget ; 
+!         menu-quick-views add-gadget 
+; 
 
 
 : menu-bar ( -- gadget )
        <shelf>
              "reinit" [ drop load-model-file ] add-border-button
              selected-file-model <label-control> add-gadget
-    ;
+;
 
 
 : 3Dwindows-buttons ( -- gadget )
@@ -284,9 +273,8 @@ drop
     "3D window views" <labeled-gadget>
 ;
 
-
 : menu-mvt4D ( -- gadget )
-        <shelf>
+        <pile>
             menu-rotations-4D  add-gadget
             menu-translations-4D  add-gadget
             { 2 2 } >>gap 
@@ -294,14 +282,12 @@ drop
 
 : menu-3Dview ( -- gadget ) ! not working
         <shelf>
-! not working
-!            menu-projection-mode add-gadget
+!            menu-projection-mode add-gadget ! not working
             3Dwindows-buttons add-gadget
             { 2 2 } >>gap 
-
 ;
 
-: 3Dview-gadget ( -- gadget )
+: 3Dviews-gadget ( -- gadget )
     <shelf>  { 2 2 } >>gap
         <pile> { 2 2 } >>gap
             view1>  add-gadget
@@ -314,23 +300,19 @@ drop
 ;
 
 : command-gadgets ( -- gadgets )
-<shelf>
+    <shelf>
     <pile> { 2 2 } >>gap 
         menu-function add-gadget
         menu-mvt4D add-gadget
         4dworld> space>> <space-describer> add-gadget
-!      4dworld> space>> value>> space-describ add-gadget
-    <list-runner> add-gadget
+!       4dworld> space>> value>> space-describ add-gadget
 !        menu-3Dview add-gadget
     add-gadget
-!    add-gadget
-!    3Dview-gadget add-gadget
-
+!    3Dviews-gadget add-gadget
 ;
 
-
 : 4Dwindows ( -- )
-[
+    [
     f T{ world-attributes { title "4DStroll Commands" } } clone
     command-gadgets >>gadgets open-window
 
@@ -345,8 +327,7 @@ drop
 
     f T{ world-attributes { title "XYZ 4DStroll" } } clone 
     view4> >>gadgets open-window
-] with-ui 
-
+    ] with-ui 
 ;
 
 

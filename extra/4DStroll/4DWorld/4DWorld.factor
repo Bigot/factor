@@ -15,11 +15,6 @@ USING: kernel
 ;
 IN: 4DStroll.4DWorld
 
-
-
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 TUPLE: 4DWorld 
     space
     projection1 projection2 projection3 projection4 
@@ -29,7 +24,6 @@ TUPLE: 4DWorld
     active-views
     ;
 
-
 : init-views ( 4DWorld -- )
     dup space>> value>>
     [ 0 space-project >>projection1 ] keep
@@ -37,47 +31,36 @@ TUPLE: 4DWorld
     [ 2 space-project >>projection3 ] keep
     3 space-project  >>projection4
     drop
-;
+; inline
 
 : <4DWorld> ( -- object ) 
     4DWorld new
 !    { 0 0 0 } clone >>position
-!    3 identity-matrix >>orientation
     0 <model> >>projection-mode 
     f <model> >>collision-mode
     3 >>translation-step  
     5 >>rotation-step 
     t <model> 
     t <model> 
-    f <model> 
+    t <model> 
     t <model> 
     4array >>active-views
-;
-
-
+; inline
 
 : >space ( 4DWorld space -- 4DWorld )
     <model> >>space
     dup init-views
-;
+; inline
 
 : file>space ( 4DWorld file -- 4DWorld )
      read-model-file >space
-;
+; inline
 
 : test-file>space ( 4DWorld --  4DWorld )
-   ! "D:/Program Files/factor/work/4DStroll/save/hypercube.xml"
     work-directory> "/multi-solids.xml" append
-    ! "D:/Program Files/factor/work/4DStroll/save/prismetriagone.xml"
-    ! "D:/Program Files/factor/work/4DStroll/save/prismetriagone.xml"    
-    file>space
-;
+    file>space ;
 
-: test-world ( -- 4DWorld ) 
-    <4DWorld>  test-file>space
-;
-
-
+: test-world ( -- 4DWorld ) <4DWorld>  test-file>space ; 
 
 
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -97,11 +80,13 @@ TUPLE: 4DWorld
   !  update-observer-projections 
     ; inline
 
+
 : rotation-4D ( 4DWorld quot -- 4DWorld ) 
     [ dup rotation-step>> ] dip
     call( x -- x )
-    '[ _ [ [ middle-of-space dup vneg ] keep swap space-translate ] dip
-         space-transform 
+    '[  [ middle-of-space dup vneg ] keep 
+        swap space-translate
+        _ space-transform 
          swap space-translate
     ] (apply-to-space) ;
 
@@ -109,23 +94,20 @@ TUPLE: 4DWorld
     over translation-step>> v*n
     '[ _ space-translate ] (apply-to-space) ;
 
-
 : add-space-to-world ( 4DWorld space -- 4DWorld ) 
-    [ 
-    ! old new
-     [ dup solids>> ] [ solids>> ] bi* assoc-union  >>solids
-    ] curry (apply-to-space)
+    [ space-union-solids ] curry (apply-to-space)
 ; inline
-
 
 : delete-selected ( 4DWorld -- 4DWorld ) 
     [ delete-selected-solids ] (apply-to-space)
 ; inline
 
+: group-selected ( 4DWorld -- 4DWorld ) 
+    [ group-selected-ndobjects ] (apply-to-space)
+; inline
 
-! M: 4DWorld model-changed
-!    nip init-views
-! ;
-
+: ungroup-selected ( 4DWorld -- 4DWorld ) 
+    [ ungroup-selected-ndobjects ] (apply-to-space)
+; inline
 
 

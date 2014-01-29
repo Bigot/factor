@@ -2,34 +2,42 @@
 <space>
 	<name>multi solids</name>
 	<dimension>4</dimension>
-	<solid>
-		<name>4cube1</name>
+	<spacegroup>
+		<name>multi solids</name>
 		<dimension>4</dimension>
-		<face>1,0,0,0,100</face>
-		<face>-1,0,0,0,-150</face>
-		<face>0,1,0,0,100</face>
-		<face>0,-1,0,0,-150</face>
-		<face>0,0,1,0,100</face>
-		<face>0,0,-1,0,-150</face>
-		<face>0,0,0,1,100</face>
-		<face>0,0,0,-1,-150</face>
-		<color>1,0,0</color>
-	</solid>
-	<solid>
-		<name>4triancube</name>
-		<dimension>4</dimension>
-		<face>1,0,0,0,160</face>
-        	<face>-0.4999999999999998,-0.8660254037844387,0,0,-130</face>
-		<face>-0.5000000000000004,0.8660254037844384,0,0,-130</face>
-		<face>0,0,1,0,140</face>
-		<face>0,0,-1,0,-180</face>
-		<face>0,0,0,1,110</face>
-		<face>0,0,0,-1,-180</face>
-		<color>0,1,0</color>
-	</solid>
+		<refpoint>100,0,150,0</refpoint>
+		<solid>
+			<name>4cube1</name>
+			<dimension>4</dimension>
+			<refpoint>100,150,0,0</refpoint>
+			<face>1,0,0,0,100</face>
+			<face>-1,0,0,0,-150</face>
+			<face>0,1,0,0,100</face>
+			<face>0,-1,0,0,-150</face>
+			<face>0,0,1,0,100</face>
+			<face>0,0,-1,0,-150</face>
+			<face>0,0,0,1,100</face>
+			<face>0,0,0,-1,-150</face>
+			<color>1,0,0</color>
+		</solid>
+		<solid>
+			<name>4triancube</name>
+			<dimension>4</dimension>
+			<refpoint>100,0,150,0</refpoint>
+			<face>1,0,0,0,160</face>
+       		 	<face>-0.4999999999999998,-0.8660254037844387,0,0,-130</face>
+			<face>-0.5000000000000004,0.8660254037844384,0,0,-130</face>
+			<face>0,0,1,0,140</face>
+			<face>0,0,-1,0,-180</face>
+			<face>0,0,0,1,110</face>
+			<face>0,0,0,-1,-180</face>
+			<color>0,1,0</color>
+		</solid>
+	</spacegroup>
 	<solid>
 		<name>triangone</name>
 		<dimension>4</dimension>
+		<refpoint>0,0,100,150</refpoint>
 		<face>1,0,0,0,60</face>
 		<face>0.5,0.8660254037844386,0,0,60</face>
 		<face>-0.5,0.8660254037844387,0,0,-20</face>

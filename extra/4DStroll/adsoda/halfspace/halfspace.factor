@@ -30,7 +30,7 @@ IN: 4DStroll.adsoda.halfspace
     over v*
     sum  neg
     suffix ! add value as constant at the end of equation
-;
+; inline
 
 : position-point ( halfspace v -- x ) 
     -1 suffix v* sum  ; inline
@@ -51,7 +51,7 @@ IN: 4DStroll.adsoda.halfspace
     [ [ head ] curry map ] keep  identity-matrix m- 
     flatten
     [ abs ZERO-VALUE < ] all?
-;
+; inline
 
 : valid-solution? ( matrice n -- ? )
     islenght=?
@@ -60,12 +60,13 @@ IN: 4DStroll.adsoda.halfspace
 
 : intersect-hyperplanes ( matrice -- seq )
     [ solution dup ] [ first dimension ] bi
-    valid-solution?     [ get-intersection ] [ drop f ] if ;
+    valid-solution?     [ get-intersection ] [ drop f ] if 
+;   inline
 
 : compare-corners-roughly ( corner corner -- ? )
     2drop t ; inline
 ! : remove-inner-faces ( -- ) ;
 
-: project-vector ( pv seq -- seq ) ! pv 
+: project-vector ( pv seq -- seq )  
     [ head ] [ 1 +  tail ] 2bi append ; inline
 

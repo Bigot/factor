@@ -1,6 +1,6 @@
 ! Copyright (C) 2008 Jeff Bigot
 ! See http://factorcode.org/license.txt for BSD license.
-USING: kernel arrays sequences fry math combinators ;
+USING: kernel arrays sequences fry math combinators assocs ;
 
 IN: 4DStroll.adsoda.tools.combinators
 
@@ -32,7 +32,7 @@ IN: 4DStroll.adsoda.tools.combinators
         { [ 2dup = ] [ 3drop 1array ] }
         { [ 2dup > ] [ 2drop 2drop {  } ] } 
     } cond
-;
+; 
 
  : concat-nth ( seq1 seq2 -- seq )  
     [ nth append ] curry map-index ; inline
@@ -43,4 +43,9 @@ IN: 4DStroll.adsoda.tools.combinators
 : map-but ( seq i quot -- seq )
     ! quot : ( seq x -- seq )
     '[ _ = [ @ ] unless ] map-index ; inline
+
+: assoc-each-but ( seq key quot -- seq )
+    ! quot : ( seq x -- seq )
+    '[ _ over = [ 2drop ] [ @ ]  unless ] assoc-each ; inline
+
 

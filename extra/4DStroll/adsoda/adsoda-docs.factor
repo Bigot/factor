@@ -2,9 +2,10 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING: help.markup help.syntax 
  4DStroll.adsoda.face
-  4DStroll.adsoda.solid
-   4DStroll.adsoda.space
-   4DStroll.ui.3DspaceGL
+ 4DStroll.adsoda.solid
+ 4DStroll.adsoda.space
+ 4DStroll.adsoda.halfspace
+ 4DStroll.ui.3DspaceGL
 ;
 
 IN: 4DStroll.adsoda
@@ -92,7 +93,7 @@ $nl
 { $subsection solid-transform }
 { $subsection subtract }
 
-{ $subsection get-silhouette  }
+! { $subsection get-silhouette  }
 
 { $subsection  solid= }
 
@@ -155,8 +156,8 @@ $nl
 "Defining words"
 { $subsection space }
 { $subsection <space> } 
-{ $subsection suffix-solids  }
-{ $subsection suffix-lights }
+{ $subsection space-suffix-solids  }
+{ $subsection space-suffix-lights }
 { $subsection clear-space-solids  }
 { $subsection describe-space }
 
@@ -178,12 +179,12 @@ HELP: space
 }
 ;
 
-HELP: suffix-solids 
+HELP: space-suffix-solids 
 "( space solid -- space )"
 { $values { "space" "a space" } { "solid" "a solid to add" } }
 { $description "Add solid to space definition" } ;
 
-HELP: suffix-lights 
+HELP: space-suffix-lights 
 "( space light -- space ) "
 { $values { "space" "a space" } { "light" "a light to add" } }
 { $description "Add a light to space definition" } ;

@@ -82,19 +82,25 @@ ARTICLE: "TODO" "Todo"
 { $list 
     "A vocab to initialize parameters"
     "a tree describing the space"
-    "an editor mode" 
+    "an editor mode for solids" 
         { $list "add a face to a solid"
-                "add a solid to the space"
                 "move a face"
-                "move a solid"
                 "select a solid in a list"
                 "select a face"
                 "display selected face"
-                "edit a solid color"
+                "use a colorpicker to change solid color"
                 "add a light"
                 "edit a light color"
                 "move a light"
+                "modify size of a solid"
                 }
+    "display reference arrows"
+    "save 3D position in save file"
+    "choose file name when save"
+    "choose space name"
+    "log modifications"
+    "undo button"
+
     "add a tool wich give an hyperplane normal vector with enought points. Will use adsoda.intersect-hyperplanes with { { 0 } { 0 } { 1 } } "
     "add ability to view the result of the intersection of the space with an hyperplane"
 
@@ -122,11 +128,11 @@ $nl
 
 
 { $heading "Navigation" }
-"Menu window is divided in 4 areas"
+"Menu window is divided in 2 areas"
 { $list
-    { "a space-file chooser to select the file to display" }
-    { "a parametrization area to select the projection mode" }
-    { "4D submenu to translate and rotate the 4D space" }
+    { "a space describer listing solids" }
+!    { "a parametrization area to select the projection mode" }
+    { "4D submenu to translate and rotate selected solids" }
 ! { "3D submenu to move the camera in 3D space. Cameras in every 3D spaces are manipulated as a single one" }
 
 }
@@ -142,6 +148,7 @@ $nl
     { { "q / f" } { " turn left / right" } }
     { { "s / d" } { " pitch down / up" } }
     { { "e / c" } { " roll left / right" } }
+    { { "n" } { " reinit camera position" } }
 ! { "3D submenu to move the camera in 3D space. Cameras in every 3D spaces are manipulated as a single one" }
 
 }
@@ -152,9 +159,9 @@ $nl
 $nl
 "The delete button remove selected solid"
 $nl
-"The Add button add two hypercubes. The choice of the solid to add is not done yet"
+"The Add button open a window in order to select space to add."
 $nl
-"group and ungroup buttons are not working"
+"The group and ungroup buttons handle packing function."
 
 { $heading "Links" }
 { $subsection "Space file" }

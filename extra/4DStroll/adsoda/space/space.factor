@@ -2,7 +2,9 @@
 ! See http://factorcode.org/license.txt for BSD license.
 USING:  kernel accessors arrays   4DStroll.adsoda.nDobject
 4DStroll.adsoda.face
+4DStroll.adsoda.spacegroup
 4DStroll.adsoda.solid math continuations
+4DStroll.adsoda.tools.combinators
 math.parser
 prettyprint combinators sequences math.vectors assocs
 fry ;
@@ -11,11 +13,42 @@ IN: 4DStroll.adsoda.space
 : remove-hidden-solids? ( -- x ) f ; inline
 
 
-TUPLE: space < nDobject dimension solids ambient-color lights  ;
+TUPLE: space < nDobject solids ambient-color lights
+spacegroups mainspacegroup activegroup ;
+
+
+: suffix-spacegroups-array ( space group -- space group )
+   [ [ spacegroups>> ] dip
+    define-ID rot set-at ] 2keep
+    ; inline
+
+: suffix-activegroup ( space nDobject -- space )
+    [ dup activegroup>> content>> ] dip
+    define-ID rot set-at 
+    ; inline
+
+: union-activegroup ( space1 space2 -- space1 )
+    [ dup activegroup>> dup content>> ] 
+    [ activegroup>> content>> ] bi*
+    assoc-union >>content >>activegroup
+    ; inline
+
+
+: suffix-mainspacegroup ( space nDobject -- space )
+    [ dup mainspacegroup>> content>> ] dip
+    define-ID rot set-at 
+    ; inline
+
 
 : <space> ( -- space )     
     space new 
     H{ } clone >>solids
+    H{ } clone >>spacegroups
+    <spacegroup> 
+    suffix-spacegroups-array
+    [ >>mainspacegroup ] keep 
+    >>activegroup
+
 ; inline
 
 M: space >log 
@@ -39,52 +72,134 @@ M: space >table
     ;
 
 
-: suffix-solids ( space solid -- space )
-!    [ suffix ] curry change-solids 
-     [ dup  solids>> ] dip
-   dup identity-hashcode rot set-at 
+M: space ->selected? mainspacegroup>> ->selected? ;
+
+: suffix-solids-array ( space solid -- space solid )
+   [ [ solids>> ] dip
+    define-ID rot set-at ] 2keep
     ; inline
+
+: union-solids-array ( space1 space2 -- space1 space2 )
+   2dup 
+   [ solids>> ] bi@ assoc-union  
+   swap [ >>solids ] dip 
+    ; inline
+
 
 : suffix-lights ( space light -- space ) 
     [ suffix ] curry change-lights ; inline
 
+: space-union-solids ( space space -- space )
+    union-solids-array 
+    union-activegroup
+  ; inline
+
+: space-suffix-solids ( space solid -- space )
+    suffix-solids-array 
+    suffix-activegroup
+  ; inline
+
+: space-suffix-lights ( space light -- space ) 
+    suffix-lights ; inline
+
 : clear-space-solids ( space -- space )     
     H{ } clone >>solids ; inline
 
+: space-solids-apply ( space quot -- space ) 
+    [ dup solids>> ] dip assoc-each
+; inline
+
+: space-solids-filter ( space quot -- space ) 
+    [ dup solids>> ] dip assoc-filter  >>solids
+; inline
+
 : space-ensure-solids ( space -- space ) 
-    dup 
-    solids>>
-    [ nip ensure-adjacencies drop ] assoc-each ; inline
+    [ nip ensure-adjacencies drop ] space-solids-apply ; inline
 
 ! : space-unvalid-adj-solids ( space -- space ) 
 !    [ [ unvalid-adjacencies ] map ] change-solids ; inline
 
-
-
 : eliminate-empty-solids ( space -- space ) 
-    dup
-    solids>>
-    [ nip non-empty-solid? ] assoc-filter 
-    >>solids
+    [ nip non-empty-solid? ] space-solids-filter 
     ; inline
 
-: space-apply ( space quot -- space ) 
-    [ dup solids>> ] dip assoc-each
-; inline
+: remove-from-spacegroups ( space id -- ) 
+    over spacegroups>> delete-at drop ; inline
+
+
+: delete-selected-solids ( space -- space ) 
+    [ nip selected?>> value>> not ] space-solids-filter
+    dup 
+    mainspacegroup>> 
+    [ [ nip selected?>> value>> not ] assoc-filter ]
+    change-content drop
+    ; inline
+
+: group-selected-ndobjects ( space -- space ) 
+    dup mainspacegroup>> content>>
+    [ nip selected?>> value>> ] assoc-partition ! true false   
+    <spacegroup> 
+    rot >>content
+    pick dimension>> >>dimension
+    [ [ dup mainspacegroup>> ] dip >>content >>mainspacegroup ] dip
+    suffix-spacegroups-array 
+    suffix-mainspacegroup
+    dup t swap ->selected?
+    ! to be cleaned
+    ; inline
+
+
+: remove-group-from-mainspacegroup ( space id value -- ) 
+    [ mainspacegroup>> content>> ] 2dip
+    [ over delete-at ] dip 
+    content>>
+    swap [ swapd set-at ] curry assoc-each
+    ;
+
+: ungroup-selected-ndobjects ( space -- space ) 
+! ignore non group object
+    dup
+    mainspacegroup>> content>>
+    [ nip selected?>> value>> ] assoc-filter
+    over [ -rot 
+        [ remove-group-from-mainspacegroup ] 3keep
+        drop
+        remove-from-spacegroups
+    ] curry assoc-each 
+;
 
 : space-transform ( space m -- space ) 
-    '[ nip _ solid-transform drop ] space-apply
+    '[ nip _ solid-transform drop ] space-solids-apply
     ; inline
 
 : space-translate ( space v -- space ) 
-    '[ nip _ solid-translate drop ] space-apply ; inline
+    '[ nip _ solid-translate drop ] space-solids-apply ; inline
 
 : describe-space ( space -- ) 
     solids>>  [  nip
         [ corners>>  [ pprint ] each ] 
         [ name>> . ] 
         bi 
-    ] assoc-each ;
+    ] assoc-each ; inline
+
+: solids->assoc ( seq -- assoc )
+    [ dup identity-hashcode swap ] 
+            H{ } clone map>assoc
+; inline
+
+! TODO H{
+: (solids-silhouette-subtract) ( solids solid -- solids ) 
+!     [  clip-solid solids->assoc assoc-union ] curry 
+!     H{ } clone -rot 
+!     assoc-each 
+2drop H{ } clone
+; inline
+
+: solids-silhouette-subtract ( solids i solid -- solids )
+! solids is an array of 1 solid arrays
+!      [ (solids-silhouette-subtract) ] curry assoc-each-but 
+3drop H{ } clone
+; inline 
 
 : remove-hidden-solids ( space -- space ) 
 ! We must include each solid in a sequence because during substration 
@@ -115,16 +230,16 @@ M: space >table
     ! TODO project lights
 ; inline
 
+
 : space-project-solids ( old new -- old new )
 ! verify when solids list is empty
     over
         [ solids>> clone ] 
         [ lights>> ] 
         [ ambient-color>> ]  tri 
-        ! H{ solids } / { lights } / color
+        ! stack : H{ solids }  { lights }  color
         '[ nip _ _ rot solid-project 
-            [ dup identity-hashcode swap ] 
-            H{ } clone map>assoc 
+            solids->assoc 
             assoc-union
          ]
         H{ } clone -rot
@@ -149,10 +264,10 @@ M: space >table
         eliminate-empty-solids
         space-ensure-solids
     ] with-pv 
-; 
+; inline
 
 : middle-of-space ( space -- point )
-    ! only take into account selected solid or all ? 
+    ! only take into account selected solid 
     space-ensure-solids
     solids>> values 
     [ selected?>> value>> ] filter
@@ -162,14 +277,20 @@ M: space >table
         [ [ ] [ v+ ] map-reduce ] [ length ] bi v/n
     ] if
 
-;
+; inline
 
-: delete-selected-solids ( space -- space ) 
-    solids>>
-    [ nip selected?>> value>> not ] assoc-filter 
-    ! ] change-solids
-!    space-unvalid-adj-solids
-!    space-ensure-solids
-    ; inline
+
+M: space +->XML 
+    "" swap
+ {
+    [  name>> "name" append->XML ]
+    [ dimension>> number>string "dimension" append->XML ]
+    [ mainspacegroup>> content>> [ nip +->XML ] assoc-each ]
+    [ lights>> [ +->XML ] each ]
+    } cleave
+    "space" append->XML
+    "" swap   "model" append->XML
+
+;
 
 
